@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Control de Asistencia</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <h1>📋 Control de Asistencia</h1>
+
+  <section class="card">
+    <h3>Registrar Estudiante</h3>
+    <input type="text" id="newStudentName" placeholder="Nombre del estudiante">
+    <button id="addStudentBtn">Agregar</button>
+  </section>
+
+  <section class="card">
+    <h3>📂 Cargar Asistencia desde CSV</h3>
+    <input type="file" id="csvFile" accept=".csv">
+    <button id="uploadCsvBtn">Subir CSV</button>
+  </section> 
+
+  <section class="card">
+    <h3>Lista de Estudiantes</h3>
+    <button id="loadStudentsBtn">Cargar Estudiantes</button>
+    <button id="deleteAllStudentsBtn">  🗑 Eliminar Todo el Sistema </button>
+    
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Presente</th>
+          <th>Ausente</th>
+          <th>Permiso</th>
+          <th>Eliminar</th>
+        </tr>
+      </thead>
+      <tbody id="studentsBody"></tbody>
+    </table>
+
+    <button id="saveAttendanceBtn">Guardar Asistencia</button>
+  </section>
+
+  <br>
+  <a href="dashboard.html">Ir al Dashboard 📊</a>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

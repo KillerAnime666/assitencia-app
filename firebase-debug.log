@@ -1,0 +1,43 @@
+[debug] [2026-02-23T17:25:10.838Z] ----------------------------------------------------------------------
+[debug] [2026-02-23T17:25:10.841Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\KillerAnime\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2026-02-23T17:25:10.841Z] CLI Version:   15.7.0
+[debug] [2026-02-23T17:25:10.841Z] Platform:      win32
+[debug] [2026-02-23T17:25:10.841Z] Node Version:  v24.13.1
+[debug] [2026-02-23T17:25:10.841Z] Time:          Mon Feb 23 2026 13:25:10 GMT-0400 (hora de Bolivia)
+[debug] [2026-02-23T17:25:10.842Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\proyectos\asistencia-app
+
+Before we get started, keep in mind:
+
+  * You are currently outside your home directory
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-02-23T17:25:16.781Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-02-23T17:25:16.782Z] > authorizing via signed-in user (616elvergalarga616@gmail.com)
+[debug] [2026-02-23T17:25:16.783Z] Checked if tokens are valid: true, expires at: 1771870586277
+[debug] [2026-02-23T17:25:16.784Z] Checked if tokens are valid: true, expires at: 1771870586277
+[debug] [2026-02-23T17:25:16.785Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/todo-project-a97a1 [none]
+[debug] [2026-02-23T17:25:17.661Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/todo-project-a97a1 403
+[debug] [2026-02-23T17:25:17.661Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/todo-project-a97a1 {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2026-02-23T17:25:17.663Z] Request to https://firebase.googleapis.com/v1beta1/projects/todo-project-a97a1 had HTTP Error: 403, The caller does not have permission
+[debug] [2026-02-23T17:25:18.172Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/todo-project-a97a1 had HTTP Error: 403, The caller does not have permission
+    at responseToError (C:\Users\KillerAnime\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:53:12)
+    at RetryOperation._fn (C:\Users\KillerAnime\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:330:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+[error] 
+[error] Error: Failed to get Firebase project todo-project-a97a1. Please make sure the project exists and your account has permission to access it.

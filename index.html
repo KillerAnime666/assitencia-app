@@ -2,48 +2,70 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Control de Asistencia</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Asistencia Pro</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <h1>📋 Control de Asistencia</h1>
+  <div id="loginSection" class="card" style="max-width: 400px; margin: 50px auto;">
+    <h2>🔐 Acceso Administrativo</h2>
+    <input type="email" id="email" placeholder="Correo electrónico" style="width: 90%; padding: 10px; margin-bottom: 10px;">
+    <input type="password" id="password" placeholder="Contraseña" style="width: 90%; padding: 10px; margin-bottom: 10px;">
+    <button id="loginBtn" style="width: 100%; background-color: #4CAF50; color: white; border: none; padding: 10px;">Entrar</button>
+  </div>
 
-  <section class="card">
-    <h3>Registrar Estudiante</h3>
-    <input type="text" id="newStudentName" placeholder="Nombre del estudiante">
-    <button id="addStudentBtn">Agregar</button>
-  </section>
+  <main id="mainContent" style="display: none;">
+    <nav style="display: flex; justify-content: space-between; align-items: center; padding: 10px 30px; background: #fff; border-bottom: 1px solid #ddd;">
+      <h1>📋 Control de Asistencia</h1>
+      <button id="logoutBtn" style="background: #f44336; color: white; border: none; border-radius: 4px;">Cerrar Sesión</button>
+    </nav>
 
-  <section class="card">
-    <h3>📂 Cargar Asistencia desde CSV</h3>
-    <input type="file" id="csvFile" accept=".csv">
-    <button id="uploadCsvBtn">Subir CSV</button>
-  </section> 
+    <div style="padding: 20px;">
+      <section class="card">
+        <h3>Registrar Estudiante</h3>
+        <input type="text" id="newStudentName" placeholder="Nombre completo">
+        <button id="addStudentBtn">Agregar</button>
+      </section>
 
-  <section class="card">
-    <h3>Lista de Estudiantes</h3>
-    <button id="loadStudentsBtn">Cargar Estudiantes</button>
-    <button id="deleteAllStudentsBtn">  🗑 Eliminar Todo el Sistema </button>
-    
-    <table>
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Presente</th>
-          <th>Ausente</th>
-          <th>Permiso</th>
-          <th>Eliminar</th>
-        </tr>
-      </thead>
-      <tbody id="studentsBody"></tbody>
-    </table>
+      <section class="card">
+        <h3>📂 Importar desde CSV</h3>
+        <input type="file" id="csvFile" accept=".csv">
+        <button id="uploadCsvBtn">Subir Lista</button>
+      </section>
 
-    <button id="saveAttendanceBtn">Guardar Asistencia</button>
-  </section>
+      <section class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3>Lista de Estudiantes</h3>
+          <button id="deleteAllStudentsBtn" style="background: #ffeb3b; color: #333; font-size: 12px;">⚠ Reiniciar Sistema</button>
+        </div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Presente</th>
+              <th>Ausente</th>
+              <th>Permiso</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="studentsBody"></tbody>
+        </table>
 
-  <br>
-  <a href="dashboard.html">Ir al Dashboard 📊</a>
+        <div style="margin-top: 20px; text-align: right;">
+          <button id="saveAttendanceBtn" style="background: #2196F3; color: white; padding: 15px 30px; font-size: 16px;">
+            ✅ Guardar Asistencia de Hoy
+          </button>
+        </div>
+      </section>
+
+      <br>
+      <a href="dashboard.html" class="card" style="display: inline-block; padding: 15px; background: #673ab7; color: white; border-radius: 8px;">
+        Ver Dashboard de Estadísticas 📊
+      </a>
+    </div>
+  </main>
 
   <script type="module" src="js/main.js"></script>
 </body>

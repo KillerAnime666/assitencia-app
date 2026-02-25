@@ -70,7 +70,7 @@ async function loadDashboard(studentName = "all") {
         labels: ["Presentes", "Ausentes", "Permiso"],
         datasets: [{
           data: [present, absent, permission],
-          backgroundColor: ['#4CAF50', '#F44336', '#FFC107']
+          backgroundColor: ['#4CAF50', '#F44336', '#1c07ff']
         }]
       },
       options: {

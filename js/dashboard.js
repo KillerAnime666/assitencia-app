@@ -1,95 +1,107 @@
 import { db } from "./firebase.js";
-
-import { 
-  collection, 
-  getDocs,
-  query,
-  where,
-  orderBy
-} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
 const studentFilter = document.getElementById("studentFilter");
 let attendanceChart = null;
+let allData = []; // Caché local para no re-consultar Firebase innecesariamente
 
-// 🔹 Cargar estudiantes desde colección students
-async function loadStudentsFilter() {
+// --- CARGAR FILTRO ---
+async function setupDashboard() {
+    // 1. Cargar lista de estudiantes para el select
+    const studentsSnap = await getDocs(query(collection(db, "students"), orderBy("name", "asc")));
+    studentsSnap.forEach(doc => {
+        const opt = document.createElement("option");
+        opt.value = doc.data().name;
+        opt.textContent = doc.data().name;
+        studentFilter.appendChild(opt);
+    });
 
-  const snapshot = await getDocs(
-    query(collection(db, "students"), orderBy("name", "asc"))
-  );
+    // 2. Cargar toda la asistencia una sola vez
+    const attendanceSnap = await getDocs(collection(db, "attendance"));
+    allData = attendanceSnap.docs.map(d => d.data());
 
-  snapshot.forEach(doc => {
-    const student = doc.data();
-
-    const option = document.createElement("option");
-    option.value = student.name;
-    option.textContent = student.name;
-
-    studentFilter.appendChild(option);
-  });
+    // 3. Render inicial (Global)
+    updateDashboard("all");
 }
 
-// 🔹 Cargar Dashboard
-async function loadDashboard(studentName = "all") {
+// --- ACTUALIZAR DATOS ---
+function updateDashboard(filter) {
+    // Filtrar datos
+    const filtered = filter === "all" 
+        ? allData 
+        : allData.filter(d => d.nombre === filter);
 
-  let attendanceQuery;
+    const total = filtered.length;
+    const stats = {
+        present: filtered.filter(d => d.estado === "present").length,
+        absent: filtered.filter(d => d.estado === "absent").length,
+        permission: filtered.filter(d => d.estado === "permission").length
+    };
 
-  if (studentName === "all") {
-    attendanceQuery = collection(db, "attendance");
-  } else {
-    attendanceQuery = query(
-      collection(db, "attendance"),
-      where("nombre", "==", studentName)
-    );
-  }
+    // Calcular porcentajes
+    const getPercent = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : 0;
 
-  const snapshot = await getDocs(attendanceQuery);
+    // Actualizar UI (Textos)
+    document.getElementById("statsTitle").innerText = filter === "all" ? "Estadísticas del Curso" : `Reporte de ${filter}`;
+    document.getElementById("totalRecords").innerText = total;
+    
+    document.getElementById("countPresent").innerText = stats.present;
+    document.getElementById("percentPresent").innerText = `${getPercent(stats.present)}%`;
+    
+    document.getElementById("countAbsent").innerText = stats.absent;
+    document.getElementById("percentAbsent").innerText = `${getPercent(stats.absent)}%`;
+    
+    document.getElementById("countPermission").innerText = stats.permission;
+    document.getElementById("percentPermission").innerText = `${getPercent(stats.permission)}%`;
 
-  let present = 0;
-  let absent = 0;
-  let permission = 0;
+    // Actualizar Gráfico
+    renderPieChart(stats, total);
+}
 
-  snapshot.forEach(doc => {
-    const data = doc.data();
+// --- RENDERIZAR CHART ---
+function renderPieChart(stats, total) {
+    const ctx = document.getElementById("attendanceChart").getContext("2d");
 
-    if (data.estado === "present") present++;
-    if (data.estado === "absent") absent++;
-    if (data.estado === "permission") permission++;
-  });
+    if (attendanceChart) attendanceChart.destroy();
 
-  // 🔥 Destruir gráfico anterior si existe
-  if (attendanceChart) {
-    attendanceChart.destroy();
-  }
-
-  attendanceChart = new Chart(
-    document.getElementById("attendanceChart"),
-    {
-      type: "pie",
-      data: {
-        labels: ["Presentes", "Ausentes", "Permiso"],
-        datasets: [{
-          data: [present, absent, permission],
-          backgroundColor: ['#4CAF50', '#F44336', '#1c07ff']
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: "bottom"
-          }
+    attendanceChart = new Chart(ctx, {
+        type: 'doughnut', // Estilo dona, es más moderno que el pie completo
+        data: {
+            labels: ['Presentes', 'Ausentes', 'Permisos'],
+            datasets: [{
+                data: [stats.present, stats.absent, stats.permission],
+                backgroundColor: ['#22c55e', '#ef4444', '#940bf5'],
+                hoverOffset: 20,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        font: { size: 14, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return ` Cantidad: ${value} (${percent}%)`;
+                        }
+                    }
+                }
+            },
+            cutout: '70%' // Hace que sea una dona elegante
         }
-      }
-    }
-  );
+    });
 }
 
-// 🔹 Evento filtro
-studentFilter.addEventListener("change", (e) => {
-  loadDashboard(e.target.value);
-});
+// Eventos
+studentFilter.addEventListener("change", (e) => updateDashboard(e.target.value));
 
-// 🔹 Inicialización
-loadStudentsFilter();
-loadDashboard();
+// Inicialización
+setupDashboard();

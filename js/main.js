@@ -2,9 +2,29 @@ import { db, auth } from "./firebase.js";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+// --- FORZAR CIERRE AL CARGAR (Para que siempre pida login al refrescar) ---
+window.addEventListener('load', async () => {
+    // Esto asegura que si refrescas index.html, la sesión se limpie
+    await signOut(auth);
+});
+
 const studentsBody = document.getElementById("studentsBody");
 const searchInput = document.getElementById("searchStudent");
 const dateInput = document.getElementById("attendanceDate");
+
+// El resto de tu lógica de onAuthStateChanged
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("mainContent").classList.remove("hidden");
+    loadStudents();
+  } else {
+    document.getElementById("loginSection").classList.remove("hidden");
+    document.getElementById("mainContent").classList.add("hidden");
+    // Si no hay usuario y estamos en otra página, esto no hará nada, 
+    // pero en index.html mostrará el login.
+  }
+});
 
 // Inicializar fecha
 dateInput.value = new Date().toISOString().split('T')[0];
@@ -85,6 +105,76 @@ async function confirmDelete(id, name) {
         loadStudents();
     }
 }
+
+async function exportAttendanceToExcel() {
+    try {
+        // 1. Mostrar alerta de "Procesando" (Cortesía de SweetAlert2)
+        Swal.fire({
+            title: 'Generando reporte...',
+            text: 'Estamos procesando el desglose de cada estudiante.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        // 2. Obtener datos de Firebase
+        const studentsSnap = await getDocs(collection(db, "students"));
+        const attendanceSnap = await getDocs(collection(db, "attendance"));
+
+        const allStudents = studentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const allAttendance = attendanceSnap.docs.map(doc => doc.data());
+
+        // 3. Crear el desglose por cada estudiante
+        const excelData = allStudents.map(student => {
+            // Filtrar las asistencias que pertenecen a este estudiante
+            const records = allAttendance.filter(record => record.studentId === student.id);
+            
+            const present = records.filter(r => r.estado === "present").length;
+            const absent = records.filter(r => r.estado === "absent").length;
+            const permission = records.filter(r => r.estado === "permission").length;
+            const total = records.length;
+
+            // Calcular porcentaje de asistencia (Evitando división por cero)
+            const percentage = total > 0 ? ((present / total) * 100).toFixed(1) + "%" : "0%";
+
+            return {
+                "Nombre del Estudiante": student.name,
+                "✅ Presentes": present,
+                "❌ Faltas": absent,
+                "🆔 Permisos": permission,
+                "📅 Total Días Registrados": total,
+                "📊 % de Asistencia": percentage
+            };
+        });
+
+        // 4. Crear el archivo Excel con SheetJS
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Resumen de Asistencia");
+
+        // Ajustar el ancho de las columnas (opcional pero profesional)
+        const wscols = [
+            {wch: 30}, // Nombre
+            {wch: 12}, // Presentes
+            {wch: 12}, // Faltas
+            {wch: 12}, // Permisos
+            {wch: 25}, // Total Días
+            {wch: 15}  // Porcentaje
+        ];
+        worksheet['!cols'] = wscols;
+
+        // 5. Descargar el archivo
+        const fileName = `Reporte_Asistencia_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+
+        Swal.close();
+        Swal.fire("¡Listo!", "Tu reporte se ha descargado correctamente.", "success");
+
+    } catch (error) {
+        console.error("Error al exportar:", error);
+        Swal.fire("Error", "No se pudo generar el Excel.", "error");
+    }
+}
+document.getElementById("exportExcelBtn").addEventListener("click", exportAttendanceToExcel);
 
 // --- EVENTOS ---
 document.getElementById("loginBtn").onclick = async () => {

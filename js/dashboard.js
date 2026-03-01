@@ -1,9 +1,37 @@
 import { db } from "./firebase.js";
 import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
+import { auth } from "./firebase.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+onAuthStateChanged(auth, async (user) => {
+    // Si no hay usuario O si la página se acaba de recargar (F5)
+    const isReload = performance.navigation.type === 1; 
+
+    if (!user || isReload) {
+        if (isReload) await signOut(auth); // Limpiar sesión si fue F5
+        window.location.href = "index.html"; // Mandar al login
+    } else {
+        // Solo si hay usuario y NO es una recarga, inicializamos el dashboard
+        loadDashboardData(); 
+    }
+});
+
 const studentFilter = document.getElementById("studentFilter");
 let attendanceChart = null;
 let allData = []; // Caché local para no re-consultar Firebase innecesariamente
+
+
+onAuthStateChanged(auth, (user) => {
+    if (!user) {
+        // 🚨 SI NO HAY USUARIO (por recarga o acceso directo), VOLVER AL INDEX
+        window.location.href = "index.html";
+    } else {
+        // Si hay usuario, cargar los gráficos
+        renderCharts(); 
+    }
+});
+
 
 // --- CARGAR FILTRO ---
 async function setupDashboard() {

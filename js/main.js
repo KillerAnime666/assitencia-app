@@ -2,10 +2,18 @@ import { db, auth } from "./firebase.js";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, writeBatch } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-// --- FORZAR CIERRE AL CARGAR (Para que siempre pida login al refrescar) ---
+// --- LÓGICA DE SEGURIDAD INTELIGENTE ---
 window.addEventListener('load', async () => {
-    // Esto asegura que si refrescas index.html, la sesión se limpie
-    await signOut(auth);
+    // Detectamos el tipo de navegación
+    const navEntries = performance.getEntriesByType("navigation");
+    const navType = navEntries.length > 0 ? navEntries[0].type : "";
+
+    // SOLO cerramos sesión si es una RECARGA (F5)
+    // Si el tipo es "navigate" (venimos de un link), NO cerramos sesión
+    if (navType === "reload") {
+        await signOut(auth);
+        console.log("Sesión cerrada por recarga de página.");
+    }
 });
 
 const studentsBody = document.getElementById("studentsBody");

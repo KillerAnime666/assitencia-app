@@ -5,15 +5,17 @@ import { auth } from "./firebase.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 onAuthStateChanged(auth, async (user) => {
-    // Si no hay usuario O si la página se acaba de recargar (F5)
-    const isReload = performance.navigation.type === 1; 
+    const navEntries = performance.getEntriesByType("navigation");
+    const navType = navEntries.length > 0 ? navEntries[0].type : "";
 
-    if (!user || isReload) {
-        if (isReload) await signOut(auth); // Limpiar sesión si fue F5
-        window.location.href = "index.html"; // Mandar al login
+    // 1. Si no hay usuario: Expulsar
+    // 2. Si hay usuario pero es RECARGA (F5): Cerrar sesión y expulsar
+    if (!user || navType === "reload") {
+        if (navType === "reload") await signOut(auth);
+        window.location.href = "index.html";
     } else {
-        // Solo si hay usuario y NO es una recarga, inicializamos el dashboard
-        loadDashboardData(); 
+        // Si todo está bien y es navegación normal, cargar datos
+        setupDashboard(); 
     }
 });
 

@@ -7,73 +7,81 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
 </head>
-<body class="bg-gray-50 text-gray-800">
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300">
 
     <div id="loginSection" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md">
-            <h2 class="text-3xl font-extrabold text-center text-blue-600 mb-6">Attendance Pro</h2>
+        <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border dark:border-slate-700">
+            <h2 class="text-3xl font-extrabold text-center text-blue-600 mb-6 font-sans">Attendance Pro</h2>
             <div class="space-y-4">
-                <input type="email" id="email" placeholder="Correo electrónico" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition">
-                <input type="password" id="password" placeholder="Contraseña" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-400 outline-none transition">
+                <input type="email" id="email" placeholder="Correo electrónico" class="w-full p-3 border dark:border-slate-600 rounded-xl bg-transparent focus:ring-2 focus:ring-blue-400 outline-none transition">
+                <input type="password" id="password" placeholder="Contraseña" class="w-full p-3 border dark:border-slate-600 rounded-xl bg-transparent focus:ring-2 focus:ring-blue-400 outline-none transition">
                 <button id="loginBtn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition duration-300">Entrar al Sistema</button>
             </div>
         </div>
     </div>
 
     <main id="mainContent" class="hidden min-h-screen">
-        <nav class="bg-white shadow-sm border-b p-4 flex justify-between items-center px-8">
-            <h1 class="text-xl font-bold text-gray-700">📋 Panel de Control</h1>
+        <nav class="bg-white dark:bg-slate-800 shadow-sm border-b dark:border-slate-700 p-4 flex justify-between items-center px-8">
+            <h1 class="text-xl font-bold text-gray-700 dark:text-white">📋 Panel de Control</h1>
             <div class="flex items-center gap-4">
-                <a href="dashboard.html" class="text-blue-600 font-semibold hover:underline">Estadísticas 📊</a>
-                <button id="logoutBtn" class="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm hover:bg-red-100 transition">Salir</button>
+                <button id="darkModeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-yellow-400 hover:ring-2 hover:ring-slate-300 transition-all">
+                    <span id="darkIcon">🌙</span>
+                </button>
+                <a href="dashboard.html" class="text-blue-600 dark:text-blue-400 font-semibold hover:underline text-sm">Estadísticas 📊</a>
+                <button id="logoutBtn" class="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm hover:bg-red-100 transition">Salir</button>
             </div>
         </nav>
 
         <div class="max-w-6xl mx-auto p-6 space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border">
-                    <h3 class="font-bold text-gray-500 uppercase text-xs mb-4">Gestión de Estudiantes</h3>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700">
+                    <h3 class="font-bold text-gray-500 dark:text-slate-400 uppercase text-xs mb-4">Gestión de Estudiantes</h3>
                     <div class="flex gap-2">
-                        <input type="text" id="newStudentName" placeholder="Nombre completo..." class="flex-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                        <button id="addStudentBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">Añadir</button>
+                        <input type="text" id="newStudentName" placeholder="Nombre completo..." class="flex-1 p-2 border dark:border-slate-600 rounded-lg bg-transparent outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                        <button id="addStudentBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition text-sm">Añadir</button>
                     </div>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border">
-                    <h3 class="font-bold text-gray-500 uppercase text-xs mb-4">Importar / Exportar</h3>
+                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700">
+                    <h3 class="font-bold text-gray-500 dark:text-slate-400 uppercase text-xs mb-4">Reportes</h3>
                     <div class="flex flex-wrap gap-2">
-                        <input type="file" id="csvFile" accept=".csv" class="text-xs">
-                        <button id="uploadCsvBtn" class="bg-gray-100 px-4 py-2 rounded-lg text-xs font-bold hover:bg-gray-200">Subir CSV</button>
-                        <button id="exportExcelBtn" class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-200">Descargar Excel</button>
+                        <button id="exportExcelBtn" class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-4 py-2 rounded-lg text-xs font-bold hover:bg-green-200 transition">📗 Descargar Excel Detallado</button>
+                        <button id="deleteAllStudentsBtn" class="bg-orange-50 dark:bg-orange-900/20 text-orange-600 px-4 py-2 rounded-lg text-xs font-bold hover:bg-orange-100 transition">⚠ Reiniciar Todo</button>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-                <div class="p-4 bg-gray-50 border-b flex flex-wrap justify-between items-center gap-4">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700 overflow-hidden">
+                <div class="p-4 bg-gray-50 dark:bg-slate-800/50 border-b dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
                     <div class="flex gap-4">
-                        <input type="date" id="attendanceDate" class="p-2 border rounded-lg text-sm">
-                        <input type="text" id="searchStudent" placeholder="Buscar alumno..." class="p-2 border rounded-lg text-sm w-64">
+                        <input type="date" id="attendanceDate" class="p-2 border dark:border-slate-600 rounded-lg text-sm bg-transparent">
+                        <input type="text" id="searchStudent" placeholder="Buscar alumno..." class="p-2 border dark:border-slate-600 rounded-lg text-sm bg-transparent w-48 md:w-64">
                     </div>
-                    <button id="markAllPresent" class="text-xs bg-blue-100 text-blue-700 px-4 py-2 rounded-full font-bold hover:bg-blue-200 transition">Marcar Todos Presentes</button>
+                    <button id="markAllPresent" class="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-full font-bold hover:bg-blue-200 transition">Marcar Todos Presentes</button>
                 </div>
 
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="bg-gray-50 text-gray-400 text-xs uppercase">
-                            <th class="p-4 border-b">Nombre del Estudiante</th>
-                            <th class="p-4 border-b text-center">Presente</th>
-                            <th class="p-4 border-b text-center">Ausente</th>
-                            <th class="p-4 border-b text-center">Permiso</th>
-                            <th class="p-4 border-b text-center">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="studentsBody" class="divide-y">
-                        </tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="bg-gray-50 dark:bg-slate-800/50 text-gray-400 dark:text-slate-500 text-xs uppercase">
+                                <th class="p-4 border-b dark:border-slate-700">Nombre del Estudiante</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center">Presente</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center">Ausente</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center">Permiso</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center text-red-500">Borrar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentsBody" class="divide-y dark:divide-slate-700"></tbody>
+                    </table>
+                </div>
 
-                <div class="p-6 bg-gray-50 text-right">
-                    <button id="saveAttendanceBtn" class="bg-blue-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transform hover:scale-105 transition">Guardar Asistencia de Hoy</button>
+                <div class="p-6 bg-gray-50 dark:bg-slate-800/50 text-right">
+                    <button id="saveAttendanceBtn" class="bg-blue-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transform hover:scale-105 transition">Guardar Asistencia</button>
                 </div>
             </div>
         </div>

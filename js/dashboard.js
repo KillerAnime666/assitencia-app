@@ -1,66 +1,31 @@
-import { db } from "./firebase.js";
+import { auth, db } from "./firebase.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import { collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-import { auth } from "./firebase.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
-
-onAuthStateChanged(auth, async (user) => {
-    const navEntries = performance.getEntriesByType("navigation");
-    const navType = navEntries.length > 0 ? navEntries[0].type : "";
-
-    // 1. Si no hay usuario: Expulsar
-    // 2. Si hay usuario pero es RECARGA (F5): Cerrar sesión y expulsar
-    if (!user || navType === "reload") {
-        if (navType === "reload") await signOut(auth);
-        window.location.href = "index.html";
-    } else {
-        // Si todo está bien y es navegación normal, cargar datos
-        setupDashboard(); 
-    }
-});
-
-const studentFilter = document.getElementById("studentFilter");
 let attendanceChart = null;
-let allData = []; // Caché local para no re-consultar Firebase innecesariamente
+let allData = [];
 
-
-onAuthStateChanged(auth, (user) => {
-    if (!user) {
-        // 🚨 SI NO HAY USUARIO (por recarga o acceso directo), VOLVER AL INDEX
-        window.location.href = "index.html";
-    } else {
-        // Si hay usuario, cargar los gráficos
-        renderCharts(); 
-    }
-});
-
-
-// --- CARGAR FILTRO ---
 async function setupDashboard() {
-    // 1. Cargar lista de estudiantes para el select
-    const studentsSnap = await getDocs(query(collection(db, "students"), orderBy("name", "asc")));
-    studentsSnap.forEach(doc => {
-        const opt = document.createElement("option");
-        opt.value = doc.data().name;
-        opt.textContent = doc.data().name;
-        studentFilter.appendChild(opt);
-    });
+    const studentFilter = document.getElementById("studentFilter");
+    try {
+        const studentsSnap = await getDocs(query(collection(db, "students"), orderBy("name", "asc")));
+        studentFilter.innerHTML = '<option value="all">📈 Vista Global (Todo el curso)</option>';
+        studentsSnap.forEach(doc => {
+            const opt = document.createElement("option");
+            opt.value = doc.data().name;
+            opt.textContent = doc.data().name;
+            studentFilter.appendChild(opt);
+        });
 
-    // 2. Cargar toda la asistencia una sola vez
-    const attendanceSnap = await getDocs(collection(db, "attendance"));
-    allData = attendanceSnap.docs.map(d => d.data());
-
-    // 3. Render inicial (Global)
-    updateDashboard("all");
+        const attendanceSnap = await getDocs(collection(db, "attendance"));
+        allData = attendanceSnap.docs.map(d => d.data());
+        updateDashboardView("all");
+        studentFilter.onchange = (e) => updateDashboardView(e.target.value);
+    } catch (e) { console.error(e); }
 }
 
-// --- ACTUALIZAR DATOS ---
-function updateDashboard(filter) {
-    // Filtrar datos
-    const filtered = filter === "all" 
-        ? allData 
-        : allData.filter(d => d.nombre === filter);
-
+function updateDashboardView(filter) {
+    const filtered = filter === "all" ? allData : allData.filter(d => d.nombre === filter);
     const total = filtered.length;
     const stats = {
         present: filtered.filter(d => d.estado === "present").length,
@@ -68,70 +33,55 @@ function updateDashboard(filter) {
         permission: filtered.filter(d => d.estado === "permission").length
     };
 
-    // Calcular porcentajes
-    const getPercent = (val) => total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+    const getPercent = (v) => total > 0 ? ((v / total) * 100).toFixed(1) : 0;
 
-    // Actualizar UI (Textos)
-    document.getElementById("statsTitle").innerText = filter === "all" ? "Estadísticas del Curso" : `Reporte de ${filter}`;
-    document.getElementById("totalRecords").innerText = total;
-    
     document.getElementById("countPresent").innerText = stats.present;
-    document.getElementById("percentPresent").innerText = `${getPercent(stats.present)}%`;
-    
+    document.getElementById("percentPresent").innerText = getPercent(stats.present) + "%";
     document.getElementById("countAbsent").innerText = stats.absent;
-    document.getElementById("percentAbsent").innerText = `${getPercent(stats.absent)}%`;
-    
+    document.getElementById("percentAbsent").innerText = getPercent(stats.absent) + "%";
     document.getElementById("countPermission").innerText = stats.permission;
-    document.getElementById("percentPermission").innerText = `${getPercent(stats.permission)}%`;
+    document.getElementById("percentPermission").innerText = getPercent(stats.permission) + "%";
 
-    // Actualizar Gráfico
-    renderPieChart(stats, total);
-}
-
-// --- RENDERIZAR CHART ---
-function renderPieChart(stats, total) {
     const ctx = document.getElementById("attendanceChart").getContext("2d");
-
     if (attendanceChart) attendanceChart.destroy();
 
+    const isDark = document.documentElement.classList.contains("dark");
+
     attendanceChart = new Chart(ctx, {
-        type: 'doughnut', // Estilo dona, es más moderno que el pie completo
+        type: 'doughnut',
         data: {
             labels: ['Presentes', 'Ausentes', 'Permisos'],
             datasets: [{
                 data: [stats.present, stats.absent, stats.permission],
                 backgroundColor: ['#22c55e', '#ef4444', '#940bf5'],
-                hoverOffset: 20,
                 borderWidth: 0
             }]
         },
         options: {
             responsive: true,
+            cutout: '70%',
             plugins: {
-                legend: {
+                legend: { 
                     position: 'bottom',
-                    labels: {
-                        padding: 20,
-                        font: { size: 14, weight: 'bold' }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const value = context.raw;
-                            const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                            return ` Cantidad: ${value} (${percent}%)`;
-                        }
-                    }
+                    labels: { color: isDark ? '#cbd5e1' : '#475569' }
                 }
-            },
-            cutout: '70%' // Hace que sea una dona elegante
+            }
         }
     });
 }
 
-// Eventos
-studentFilter.addEventListener("change", (e) => updateDashboard(e.target.value));
+onAuthStateChanged(auth, async (user) => {
+    const navEntries = performance.getEntriesByType("navigation");
+    const navType = navEntries.length > 0 ? navEntries[0].type : "";
 
-// Inicialización
-setupDashboard();
+    if (!user || navType === "reload") {
+        if (navType === "reload") await signOut(auth);
+        window.location.href = "index.html";
+    } else {
+        setupDashboard(); 
+    }
+});
+
+if (localStorage.getItem("theme") === "dark") {
+    document.documentElement.classList.add("dark");
+}

@@ -12,6 +12,26 @@
             darkMode: 'class'
         }
     </script>
+    <style>
+        /* Estilo fino para el área de scroll */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* slate-300 */
+            border-radius: 10px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+        }
+        /* Efecto de foco en el scroll cuando se usa el color púrpura */
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #940bf5;
+        }
+    </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300">
 
@@ -55,8 +75,8 @@
                     </div>
                 </div>
             </div>
-
-            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700 overflow-hidden">
+            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700 overflow-hidden flex flex-col">
+    
                 <div class="p-4 bg-gray-50 dark:bg-slate-800/50 border-b dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
                     <div class="flex gap-4">
                         <input type="date" id="attendanceDate" class="p-2 border dark:border-slate-600 rounded-lg text-sm bg-transparent">
@@ -65,23 +85,26 @@
                     <button id="markAllPresent" class="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-full font-bold hover:bg-blue-200 transition">Marcar Todos Presentes</button>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="bg-gray-50 dark:bg-slate-800/50 text-gray-400 dark:text-slate-500 text-xs uppercase">
-                                <th class="p-4 border-b dark:border-slate-700">Nombre del Estudiante</th>
-                                <th class="p-4 border-b dark:border-slate-700 text-center">Presente</th>
-                                <th class="p-4 border-b dark:border-slate-700 text-center">Ausente</th>
-                                <th class="p-4 border-b dark:border-slate-700 text-center">Permiso</th>
-                                <th class="p-4 border-b dark:border-slate-700 text-center text-red-500">Borrar</th>
+                <div class="max-h-[300px] overflow-y-auto relative custom-scrollbar">
+                    <table class="w-full text-left border-separate border-spacing-0">
+                        <thead class="sticky top-0 z-20 bg-gray-50 dark:bg-slate-800 shadow-sm">
+                            <tr class="text-gray-400 dark:text-slate-500 text-xs uppercase">
+                                <th class="p-4 border-b dark:border-slate-700 backdrop-blur-md">Nombre del Estudiante</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center backdrop-blur-md">Presente</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center backdrop-blur-md">Ausente</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center backdrop-blur-md">Permiso</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center text-red-500 backdrop-blur-md">Borrar</th>
                             </tr>
                         </thead>
-                        <tbody id="studentsBody" class="divide-y dark:divide-slate-700"></tbody>
+                        <tbody id="studentsBody" class="divide-y dark:divide-slate-700">
+                            </tbody>
                     </table>
                 </div>
 
-                <div class="p-6 bg-gray-50 dark:bg-slate-800/50 text-right">
-                    <button id="saveAttendanceBtn" class="bg-blue-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transform hover:scale-105 transition">Guardar Asistencia</button>
+                <div class="p-4 bg-gray-50 dark:bg-slate-800/50 border-t dark:border-slate-700 text-right">
+                    <button id="saveAttendanceBtn" class="bg-blue-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transform hover:scale-105 transition">
+                        Guardar Asistencia
+                    </button>
                 </div>
             </div>
         </div>

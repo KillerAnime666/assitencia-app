@@ -82,34 +82,61 @@ document.addEventListener('click', async (e) => {
 // --- 7. FUNCIONES DE LA APP ---
 
 async function loadStudents() {
-    const { studentsBody, dateInput } = getEls();
     if (!studentsBody) return;
-    
-    if (!dateInput.value) dateInput.value = new Date().toISOString().split('T')[0];
-
     studentsBody.innerHTML = "<tr><td colspan='5' class='p-10 text-center text-gray-400'>Cargando...</td></tr>";
-    
-    try {
-        const q = query(collection(db, "students"), orderBy("name", "asc"));
-        const snapshot = await getDocs(q);
-        studentsBody.innerHTML = "";
+    const q = query(collection(db, "students"), orderBy("name", "asc"));
+    const snapshot = await getDocs(q);
+    studentsBody.innerHTML = "";
 
-        snapshot.forEach(d => {
-            const s = d.data();
-            const tr = document.createElement("tr");
-            tr.dataset.id = d.id;
-            tr.className = "hover:bg-gray-50 dark:hover:bg-slate-700/30 transition border-b dark:border-slate-700";
-            tr.innerHTML = `
-                <td class="p-4 font-semibold text-sm">${s.name}</td>
-                <td class="p-4 text-center"><input type="radio" name="${d.id}" value="present" class="accent-green-500 w-4 h-4 cursor-pointer"></td>
-                <td class="p-4 text-center"><input type="radio" name="${d.id}" value="absent" class="accent-red-500 w-4 h-4 cursor-pointer"></td>
-                <td class="p-4 text-center"><input type="radio" name="${d.id}" value="permission" class="accent-[#940bf5] w-4 h-4 cursor-pointer"></td>
-                <td class="p-4 text-center text-red-500 cursor-pointer delete-btn" onclick="confirmDelete('${d.id}', '${s.name}')">✖</td>
-            `;
-            studentsBody.appendChild(tr);
-        });
-        updateCounter();
-    } catch (e) { console.error(e); }
+    snapshot.forEach(d => {
+        const s = d.data();
+        const tr = document.createElement("tr");
+        tr.dataset.id = d.id;
+        tr.className = "hover:bg-gray-50 dark:hover:bg-slate-700/20 transition border-b dark:border-slate-700";
+        
+        // Diseño de botones segmentados
+        tr.innerHTML = `
+            <td class="p-4 font-bold text-slate-700 dark:text-slate-200 text-sm">${s.name}</td>
+            
+            <td class="p-2 text-center">
+                <label class="group cursor-pointer">
+                    <input type="radio" name="${d.id}" value="present" class="hidden peer">
+                    <div class="w-10 h-10 mx-auto flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 
+                        peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-600 transition-all duration-200 shadow-sm active:scale-90">
+                        <span class="font-black text-xs">P</span>
+                    </div>
+                </label>
+            </td>
+
+            <td class="p-2 text-center">
+                <label class="group cursor-pointer">
+                    <input type="radio" name="${d.id}" value="absent" class="hidden peer">
+                    <div class="w-10 h-10 mx-auto flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 
+                        peer-checked:bg-red-500 peer-checked:text-white peer-checked:border-red-600 transition-all duration-200 shadow-sm active:scale-90">
+                        <span class="font-black text-xs">F</span>
+                    </div>
+                </label>
+            </td>
+
+            <td class="p-2 text-center">
+                <label class="group cursor-pointer">
+                    <input type="radio" name="${d.id}" value="permission" class="hidden peer">
+                    <div class="w-10 h-10 mx-auto flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 
+                        peer-checked:bg-[#940bf5] peer-checked:text-white peer-checked:border-[#7a09c9] transition-all duration-200 shadow-sm active:scale-90">
+                        <span class="font-black text-xs">L</span>
+                    </div>
+                </label>
+            </td>
+
+            <td class="p-2 text-center">
+                <button onclick="confirmDelete('${d.id}', '${s.name}')" class="w-8 h-8 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
+                    <span class="text-lg">×</span>
+                </button>
+            </td>
+        `;
+        studentsBody.appendChild(tr);
+    });
+    updateCounter();
 }
 
 function updateCounter() {

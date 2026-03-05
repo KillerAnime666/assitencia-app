@@ -2,7 +2,7 @@ import { db, auth } from "./firebase.js";
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, writeBatch, where } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-// --- 1. CONFIGURACIÓN INICIAL DEL TEMA (EVITAR PARPADEO) ---
+// --- 1. CONFIGURACIÓN INICIAL DEL TEMA ---
 const htmlElement = document.documentElement;
 if (localStorage.getItem("theme") === "dark") {
     htmlElement.classList.add("dark");
@@ -29,7 +29,7 @@ const Toast = Swal.mixin({
     }
 });
 
-// --- 4. ESTABLECER FECHA ACTUAL LOCAL POR DEFECTO ---
+// --- 4. ESTABLECER FECHA ACTUAL LOCAL ---
 const setTodayDate = () => {
     const hoy = new Date();
     const offset = hoy.getTimezoneOffset();
@@ -63,12 +63,30 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// --- 7. FUNCIONES CORE ---
+// --- 7. FUNCIONES DE CARGA Y RENDERIZADO ---
 
-// Carga estudiantes y activa la verificación de registros existentes
+// Skeleton Screen para la carga
+function renderTableSkeletons(count = 6) {
+    if (!studentsBody) return;
+    studentsBody.innerHTML = "";
+    for (let i = 0; i < count; i++) {
+        const tr = document.createElement("tr");
+        tr.className = "animate-pulse border-b dark:border-slate-800";
+        tr.innerHTML = `
+            <td class="p-4"><div class="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div></td>
+            <td class="p-2 text-center"><div class="w-10 h-10 mx-auto bg-slate-200 dark:bg-slate-700 rounded-xl"></div></td>
+            <td class="p-2 text-center"><div class="w-10 h-10 mx-auto bg-slate-200 dark:bg-slate-700 rounded-xl"></div></td>
+            <td class="p-2 text-center"><div class="w-10 h-10 mx-auto bg-slate-200 dark:bg-slate-700 rounded-xl"></div></td>
+            <td class="p-2 text-center"><div class="w-6 h-6 mx-auto bg-slate-200 dark:bg-slate-700 rounded-md"></div></td>
+        `;
+        studentsBody.appendChild(tr);
+    }
+}
+
+// Carga principal de estudiantes
 async function loadStudents() {
     if (!studentsBody) return;
-    studentsBody.innerHTML = "<tr><td colspan='5' class='p-10 text-center text-slate-400 italic animate-pulse'>Sincronizando datos...</td></tr>";
+    renderTableSkeletons();
     
     try {
         const q = query(collection(db, "students"), orderBy("name", "asc"));
@@ -86,19 +104,19 @@ async function loadStudents() {
                 <td class="p-2 text-center">
                     <label class="cursor-pointer inline-block">
                         <input type="radio" name="${d.id}" value="present" class="hidden peer">
-                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-600 transition-all shadow-sm active:scale-90">P</div>
+                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-600 transition-all shadow-sm active:scale-90 font-black text-xs">P</div>
                     </label>
                 </td>
                 <td class="p-2 text-center">
                     <label class="cursor-pointer inline-block">
                         <input type="radio" name="${d.id}" value="absent" class="hidden peer">
-                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-red-500 peer-checked:text-white peer-checked:border-red-600 transition-all shadow-sm active:scale-90">F</div>
+                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-red-500 peer-checked:text-white peer-checked:border-red-600 transition-all shadow-sm active:scale-90 font-black text-xs">F</div>
                     </label>
                 </td>
                 <td class="p-2 text-center">
                     <label class="cursor-pointer inline-block">
                         <input type="radio" name="${d.id}" value="permission" class="hidden peer">
-                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-[#940bf5] peer-checked:text-white peer-checked:border-[#7a09c9] transition-all shadow-sm active:scale-90">EJ</div>
+                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-[#940bf5] peer-checked:text-white peer-checked:border-[#7a09c9] transition-all shadow-sm active:scale-90 font-black text-xs">EJ</div>
                     </label>
                 </td>
                 <td class="p-2 text-center">
@@ -109,17 +127,19 @@ async function loadStudents() {
             studentsBody.appendChild(tr);
         });
 
-        checkExistingAttendance(); // Buscar si ya hay datos guardados hoy
+        checkExistingAttendance(); 
 
-    } catch (e) { console.error("Error:", e); }
+    } catch (e) { 
+        console.error("Error:", e);
+        studentsBody.innerHTML = "<tr><td colspan='5' class='p-10 text-center text-red-400'>Error de conexión</td></tr>";
+    }
 }
 
-// Verifica si ya existe asistencia para la fecha seleccionada
+// Verifica asistencia existente para edición
 async function checkExistingAttendance() {
     const selectedDate = dateInput.value;
     if (!selectedDate) return;
 
-    // Limpiar selección previa
     document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
 
     try {
@@ -132,13 +152,14 @@ async function checkExistingAttendance() {
                 const radio = document.querySelector(`input[name="${data.studentId}"][value="${data.estado}"]`);
                 if (radio) radio.checked = true;
             });
-            Toast.fire({ icon: 'info', title: `Cargando registros del ${selectedDate}` });
+            Toast.fire({ icon: 'info', title: `Registros del ${selectedDate} cargados` });
         }
         updateCounter();
-    } catch (e) { console.error("Error al recuperar datos:", e); }
+    } catch (e) { console.error("Error recuperando datos:", e); }
 }
 
-// Guardar/Actualizar asistencia (Evita duplicados con ID compuesto)
+// --- 8. FUNCIONES DE ACCIÓN ---
+
 async function saveAttendance() {
     const rows = studentsBody.querySelectorAll("tr");
     const date = dateInput.value;
@@ -164,58 +185,76 @@ async function saveAttendance() {
 
     try {
         await batch.commit();
-        Toast.fire({ icon: 'success', title: 'Sincronizado correctamente' });
+        Toast.fire({ icon: 'success', title: 'Asistencia sincronizada' });
         updateCounter();
     } catch (e) { Toast.fire({ icon: 'error', title: 'Error al guardar' }); }
 }
 
-// --- 8. EVENTOS Y LISTENERS ---
+async function confirmDelete(id, name) {
+    const r = await Swal.fire({ 
+        title: `¿Borrar a ${name}?`, 
+        text: "Se eliminarán sus registros históricos.",
+        icon: 'warning', 
+        showCancelButton: true, 
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Sí, eliminar'
+    });
+    if (r.isConfirmed) { 
+        await deleteDoc(doc(db, "students", id)); 
+        Toast.fire({ icon: 'success', title: 'Estudiante eliminado' });
+        loadStudents(); 
+    }
+}
 
-// Cambio de fecha
+function updateCounter() {
+    if (!counterEl || !studentsBody) return;
+    const marked = studentsBody.querySelectorAll("input:checked").length;
+    const total = studentsBody.querySelectorAll("tr").length;
+    counterEl.innerText = `Marcados: ${marked}/${total}`;
+    counterEl.className = marked === total ? "text-green-600 font-bold text-xs" : "text-amber-600 text-xs";
+}
+
+// --- 9. EVENT LISTENERS ---
+
 dateInput.onchange = checkExistingAttendance;
-
-// Guardar
 document.getElementById("saveAttendanceBtn").onclick = saveAttendance;
+document.getElementById("logoutBtn").onclick = () => signOut(auth);
 
-// Modo Oscuro
 document.getElementById("darkModeToggle").onclick = () => {
     const isDark = htmlElement.classList.toggle("dark");
     localStorage.setItem("theme", isDark ? "dark" : "light");
     if (darkIcon) darkIcon.innerText = isDark ? "☀️" : "🌙";
 };
 
-// Login
 if (loginBtn) {
     loginBtn.onclick = async () => {
         const email = document.getElementById("email").value.trim();
         const pass = document.getElementById("password").value.trim();
-        if (!email || !pass) return Toast.fire({ icon: 'warning', title: 'Completa los campos' });
+        if (!email || !pass) return Toast.fire({ icon: 'warning', title: 'Faltan datos' });
         try {
             loginBtn.disabled = true; loginBtn.innerText = "Entrando...";
             await signInWithEmailAndPassword(auth, email, pass);
         } catch (error) {
-            Swal.fire("Error", "Credenciales incorrectas", "error");
+            Swal.fire("Error", "Acceso denegado", "error");
             loginBtn.disabled = false; loginBtn.innerText = "Entrar";
         }
     };
 }
 
-// Añadir Estudiante
 document.getElementById("addStudentBtn").onclick = async () => {
     const name = document.getElementById("newStudentName").value.trim();
     if (!name) return;
     const check = await getDocs(query(collection(db, "students"), where("name", "==", name)));
-    if (!check.empty) return Toast.fire({ icon: 'warning', title: 'Ya existe en la lista' });
+    if (!check.empty) return Toast.fire({ icon: 'warning', title: 'El alumno ya existe' });
 
     await addDoc(collection(db, "students"), { name });
     document.getElementById("newStudentName").value = "";
-    Toast.fire({ icon: 'success', title: 'Estudiante añadido' });
+    Toast.fire({ icon: 'success', title: 'Añadido con éxito' });
     loadStudents();
 };
 
-// Exportar a Excel (Con Toast)
 document.getElementById("exportExcelBtn").onclick = async () => {
-    Swal.fire({ title: 'Generando Reporte...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Generando Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     try {
         const sSnap = await getDocs(collection(db, "students"));
         const aSnap = await getDocs(collection(db, "attendance"));
@@ -224,27 +263,28 @@ document.getElementById("exportExcelBtn").onclick = async () => {
 
         const summary = students.map(s => {
             const r = attendance.filter(a => a.studentId === s.id);
-            return { "Estudiante": s.name, "Asistencias": r.filter(x => x.estado === "present").length, "Faltas": r.filter(x => x.estado === "absent").length, "Total": r.length };
+            return { 
+                "Estudiante": s.name, 
+                "Asistencias": r.filter(x => x.estado === "present").length, 
+                "Faltas": r.filter(x => x.estado === "absent").length,
+                "Justificados": r.filter(x => x.estado === "permission").length,
+                "Total": r.length 
+            };
         });
 
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "Resumen");
-        XLSX.writeFile(wb, `Reporte_Asistencia.xlsx`);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "Reporte General");
+        XLSX.writeFile(wb, `Asistencia_${dateInput.value}.xlsx`);
         Swal.close();
-        Toast.fire({ icon: 'success', title: 'Reporte descargado' });
-    } catch (e) { Swal.fire("Error", "No se pudo generar el archivo", "error"); }
+        Toast.fire({ icon: 'success', title: 'Reporte listo' });
+    } catch (e) { Swal.fire("Error", "Falla al exportar", "error"); }
 };
 
-// Logout
-document.getElementById("logoutBtn").onclick = () => signOut(auth);
-
-// Marcar todos
 document.getElementById("markAllPresent").onclick = () => {
     document.querySelectorAll('input[value="present"]').forEach(i => i.checked = true);
     updateCounter();
 };
 
-// Buscador
 searchInput.oninput = (e) => {
     const val = e.target.value.toLowerCase();
     studentsBody.querySelectorAll("tr").forEach(tr => {
@@ -252,21 +292,6 @@ searchInput.oninput = (e) => {
     });
 };
 
-// Contador dinámico
-function updateCounter() {
-    if (!counterEl) return;
-    const marked = studentsBody.querySelectorAll("input:checked").length;
-    const total = studentsBody.querySelectorAll("tr").length;
-    counterEl.innerText = `Marcados: ${marked}/${total}`;
-}
-
-studentsBody.addEventListener('change', updateCounter);
-
-window.confirmDelete = async (id, name) => {
-    const r = await Swal.fire({ title: `¿Borrar a ${name}?`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444' });
-    if (r.isConfirmed) { 
-        await deleteDoc(doc(db, "students", id)); 
-        Toast.fire({ icon: 'success', title: 'Estudiante eliminado' });
-        loadStudents(); 
-    }
-};
+studentsBody.addEventListener('change', (e) => {
+    if (e.target.type === "radio") updateCounter();
+});

@@ -52,7 +52,7 @@ onAuthStateChanged(auth, (user) => {
 
 // --- 6. FUNCIONES CORE ---
 
-// Cargar lista de estudiantes con diseño de botones cómodos
+// 1. Al cargar la lista de estudiantes, ahora también verificamos la asistencia
 async function loadStudents() {
     if (!studentsBody) return;
     studentsBody.innerHTML = "<tr><td colspan='5' class='p-10 text-center text-slate-400 italic animate-pulse'>Sincronizando datos...</td></tr>";
@@ -68,31 +68,24 @@ async function loadStudents() {
             tr.dataset.id = d.id;
             tr.className = "hover:bg-gray-50 dark:hover:bg-slate-700/30 transition border-b dark:border-slate-700";
             
-            // Diseño de botones segmentados para máxima comodidad
             tr.innerHTML = `
                 <td class="p-4 font-bold text-slate-700 dark:text-slate-200 text-sm">${s.name}</td>
                 <td class="p-2 text-center">
                     <label class="cursor-pointer inline-block">
                         <input type="radio" name="${d.id}" value="present" class="hidden peer">
-                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-600 transition-all shadow-sm active:scale-90">
-                            <span class="font-black text-xs">P</span>
-                        </div>
+                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-green-500 peer-checked:text-white peer-checked:border-green-600 transition-all shadow-sm active:scale-90">P</div>
                     </label>
                 </td>
                 <td class="p-2 text-center">
                     <label class="cursor-pointer inline-block">
                         <input type="radio" name="${d.id}" value="absent" class="hidden peer">
-                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-red-500 peer-checked:text-white peer-checked:border-red-600 transition-all shadow-sm active:scale-90">
-                            <span class="font-black text-xs">F</span>
-                        </div>
+                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-red-500 peer-checked:text-white peer-checked:border-red-600 transition-all shadow-sm active:scale-90">F</div>
                     </label>
                 </td>
                 <td class="p-2 text-center">
                     <label class="cursor-pointer inline-block">
                         <input type="radio" name="${d.id}" value="permission" class="hidden peer">
-                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-[#940bf5] peer-checked:text-white peer-checked:border-[#7a09c9] transition-all shadow-sm active:scale-90">
-                            <span class="font-black text-xs">L</span>
-                        </div>
+                        <div class="w-10 h-10 flex items-center justify-center rounded-xl border-2 border-transparent bg-slate-100 dark:bg-slate-700 text-slate-400 peer-checked:bg-[#940bf5] peer-checked:text-white peer-checked:border-[#7a09c9] transition-all shadow-sm active:scale-90">EJ</div>
                     </label>
                 </td>
                 <td class="p-2 text-center">
@@ -102,9 +95,43 @@ async function loadStudents() {
             tr.querySelector(".delete-btn").onclick = () => confirmDelete(d.id, s.name);
             studentsBody.appendChild(tr);
         });
-        updateCounter();
+
+        // ¡NUEVO! Después de cargar los alumnos, buscamos si ya hay asistencia para la fecha seleccionada
+        checkExistingAttendance();
+
     } catch (e) { console.error("Error al cargar estudiantes:", e); }
 }
+
+// 2. NUEVA FUNCIÓN: Buscar asistencia guardada para la fecha actual
+async function checkExistingAttendance() {
+    const selectedDate = dateInput.value;
+    if (!selectedDate) return;
+
+    // Resetear todos los radios antes de marcar los nuevos
+    document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
+
+    try {
+        const q = query(collection(db, "attendance"), where("fecha", "==", selectedDate));
+        const querySnapshot = await getDocs(q);
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            // Buscamos el radio button específico por el name (ID del alumno) y el value (estado)
+            const radioToMark = document.querySelector(`input[name="${data.studentId}"][value="${data.estado}"]`);
+            if (radioToMark) {
+                radioToMark.checked = true;
+            }
+        });
+        updateCounter(); // Actualizar el contador de marcados
+    } catch (e) {
+        console.error("Error al recuperar asistencia:", e);
+    }
+}
+
+// 3. EVENTO: Cuando el usuario cambia la fecha en el calendario
+dateInput.onchange = () => {
+    checkExistingAttendance();
+};
 
 // Actualizar el contador de alumnos marcados
 function updateCounter() {
@@ -116,6 +143,7 @@ function updateCounter() {
 }
 
 // Guardar asistencia usando Batch (Atómico)
+// --- Reemplaza tu función saveAttendance por esta versión optimizada ---
 async function saveAttendance() {
     const rows = studentsBody.querySelectorAll("tr");
     const date = dateInput.value;
@@ -123,27 +151,42 @@ async function saveAttendance() {
     let count = 0;
 
     rows.forEach(row => {
+        const studentId = row.dataset.id;
+        const nombre = row.cells[0].innerText;
         const status = row.querySelector("input:checked")?.value;
+
         if (status) {
-            // ID compuesto: ID_ESTUDIANTE + FECHA para evitar duplicados el mismo día
-            const ref = doc(db, "attendance", `${row.dataset.id}_${date}`);
+            // USAMOS SIEMPRE ESTE ID ÚNICO: Previene duplicados por diseño.
+            const docId = `${studentId}_${date}`;
+            const ref = doc(db, "attendance", docId);
+            
             batch.set(ref, {
-                studentId: row.dataset.id, 
-                nombre: row.cells[0].innerText, 
-                estado: status, 
+                studentId: studentId,
+                nombre: nombre,
+                estado: status,
                 fecha: date,
-                timestamp: new Date()
+                lastUpdated: new Date() // Cambiamos timestamp por lastUpdated para mayor claridad
             });
             count++;
         }
     });
 
-    if (count === 0) return Swal.fire("Atención", "Marca al menos a un estudiante", "warning");
+    if (count === 0) return Swal.fire("Atención", "No hay cambios para guardar", "info");
 
     try {
         await batch.commit();
-        Swal.fire({ icon: 'success', title: 'Asistencia Guardada', text: `Se registraron ${count} estudiantes para el ${date}`, timer: 2000 });
-    } catch (e) { Swal.fire("Error", "No se pudo guardar en la base de datos", "error"); }
+        Swal.fire({
+            icon: 'success',
+            title: 'Sincronizado',
+            text: `Se actualizaron ${count} registros para el día ${date}`,
+            timer: 1500,
+            showConfirmButton: false
+        });
+        updateCounter();
+    } catch (e) {
+        console.error("Error al guardar:", e);
+        Swal.fire("Error", "No se pudo conectar con la base de datos", "error");
+    }
 }
 
 // Exportar Reporte Excel Detallado (Resumen + Historial)

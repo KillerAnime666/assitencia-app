@@ -4,135 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Attendance Pro | Admin</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    colors: {
-                        permiso: '#940bf5',
-                    }
+                    colors: { permiso: '#940bf5' }
                 }
             }
         }
     </script>
-
     <style>
-        /* Estilo fino para el área de scroll */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 5px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #475569;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #940bf5;
-        }
-
-        /* Corregir visualización de cabecera sticky */
-        thead th {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; }
+        thead th { position: sticky; top: 0; z-index: 10; }
+        /* Evita que los botones se deformen en móviles muy pequeños */
+        .btn-attendance { min-width: 40px; min-height: 40px; }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300">
 
     <div id="loginSection" class="min-h-screen flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border dark:border-slate-700">
-            <h2 class="text-3xl font-extrabold text-center text-blue-600 mb-6">Attendance Pro</h2>
+        <div class="bg-white dark:bg-slate-800 p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md border dark:border-slate-700">
+            <h2 class="text-2xl md:text-3xl font-extrabold text-center text-blue-600 mb-6">Attendance Pro</h2>
             <div class="space-y-4">
-                <input type="email" id="email" placeholder="Correo electrónico" 
-                    class="w-full p-3 border dark:border-slate-600 rounded-xl bg-transparent focus:ring-2 focus:ring-blue-400 outline-none transition">
-                <input type="password" id="password" placeholder="Contraseña" 
-                    class="w-full p-3 border dark:border-slate-600 rounded-xl bg-transparent focus:ring-2 focus:ring-blue-400 outline-none transition">
-                <button id="loginBtn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition duration-300">
-                    Entrar al Sistema
-                </button>
+                <input type="email" id="email" placeholder="Correo electrónico" class="w-full p-3 border dark:border-slate-600 rounded-xl bg-transparent focus:ring-2 focus:ring-blue-400 outline-none">
+                <input type="password" id="password" placeholder="Contraseña" class="w-full p-3 border dark:border-slate-600 rounded-xl bg-transparent focus:ring-2 focus:ring-blue-400 outline-none">
+                <button id="loginBtn" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition">Entrar al Sistema</button>
             </div>
         </div>
     </div>
 
     <main id="mainContent" class="hidden min-h-screen">
-        <nav class="bg-white dark:bg-slate-800 shadow-sm border-b dark:border-slate-700 p-4 flex justify-between items-center px-8 sticky top-0 z-50">
-            <h1 class="text-xl font-bold text-gray-700 dark:text-white">📋 Control de Asistencia</h1>
-            <div class="flex items-center gap-4">
-                <button id="darkModeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-yellow-400 hover:ring-2 hover:ring-slate-300 transition-all">
+        <nav class="bg-white dark:bg-slate-800 shadow-sm border-b dark:border-slate-700 p-4 flex flex-col md:flex-row justify-between items-center gap-4 px-4 md:px-8 sticky top-0 z-50">
+            <h1 class="text-lg font-bold">📋 Panel de Control</h1>
+            <div class="flex items-center justify-between w-full md:w-auto gap-3">
+                <button id="darkModeToggle" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-yellow-400">
                     <span id="darkIcon">🌙</span>
                 </button>
-
-                <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl font-bold text-sm hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:scale-105 transition-all shadow-sm border border-blue-100 dark:border-blue-800/50">
-                    <span class="text-base">📊</span>
-                    <span>Estadísticas</span>
+                <a href="dashboard.html" class="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl font-bold text-sm hover:scale-105 transition-all shadow-sm border border-blue-100 dark:border-blue-800/50 text-center">
+                    📊 <span class="hidden sm:inline">Estadísticas</span>
                 </a>
-                <button id="logoutBtn" class="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm hover:bg-red-100 transition">Salir</button>
+                <button id="logoutBtn" class="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg text-sm font-bold">Salir</button>
             </div>
         </nav>
 
-        <div class="max-w-6xl mx-auto p-6 space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700">
-                    <h3 class="font-bold text-gray-400 uppercase text-[10px] mb-4 tracking-widest">Gestión de Estudiantes</h3>
-                    <div class="flex gap-2">
-                        <input type="text" id="newStudentName" placeholder="Nombre completo..." 
-                            class="flex-1 p-2 border dark:border-slate-600 rounded-lg bg-transparent outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                        <button id="addStudentBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-bold">Añadir</button>
+        <div class="max-w-6xl mx-auto p-4 md:p-6 space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border dark:border-slate-700">
+                    <h3 class="font-bold text-gray-400 uppercase text-[10px] mb-3 tracking-widest">Gestión</h3>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="newStudentName" placeholder="Nombre completo..." class="flex-1 p-2 border dark:border-slate-600 rounded-lg bg-transparent text-sm">
+                        <button id="addStudentBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold text-sm">Añadir</button>
                     </div>
                 </div>
-
-                <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700 flex flex-col justify-center">
-                    <h3 class="font-bold text-gray-400 uppercase text-[10px] mb-4 tracking-widest">Reportes Pro</h3>
-                    <button id="exportExcelBtn" class="w-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 py-3 rounded-lg text-xs font-bold hover:bg-green-200 transition flex items-center justify-center gap-2">
-                        <span>📗</span> Descargar Reporte con Historial
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border dark:border-slate-700 flex items-center">
+                    <button id="exportExcelBtn" class="w-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 py-3 rounded-lg text-xs font-bold hover:bg-green-200 transition">
+                        📗 Descargar Reporte Completo
                     </button>
                 </div>
             </div>
 
             <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700 overflow-hidden flex flex-col">
-                
-                <div class="p-4 bg-gray-50 dark:bg-slate-800/50 border-b dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
-                    <div class="flex gap-4">
-                        <input type="date" id="attendanceDate" class="p-2 border dark:border-slate-600 rounded-lg text-sm bg-transparent outline-none focus:ring-2 focus:ring-blue-500">
-                        <input type="text" id="searchStudent" placeholder="Buscar alumno..." class="p-2 border dark:border-slate-600 rounded-lg text-sm bg-transparent w-48 md:w-64 outline-none focus:ring-2 focus:ring-blue-500">
+                <div class="p-4 bg-gray-50 dark:bg-slate-800/50 border-b dark:border-slate-700 space-y-4">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <input type="date" id="attendanceDate" class="flex-1 p-2 border dark:border-slate-600 rounded-lg text-sm bg-transparent outline-none">
+                        <input type="text" id="searchStudent" placeholder="Buscar alumno..." class="flex-1 p-2 border dark:border-slate-600 rounded-lg text-sm bg-transparent outline-none">
                     </div>
-                    <div class="flex items-center gap-4">
-                        <span id="attendanceCounter" class="text-xs font-bold text-amber-600">Marcados: 0/0</span>
-                        <button id="markAllPresent" class="text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-4 py-2 rounded-full font-bold hover:bg-blue-200 transition">Todos Presentes</button>
+                    <div class="flex justify-between items-center bg-white dark:bg-slate-900 p-2 rounded-xl border dark:border-slate-700">
+                        <span id="attendanceCounter" class="text-[11px] font-bold text-amber-600">Marcados: 0/0</span>
+                        <button id="markAllPresent" class="text-[11px] bg-blue-600 text-white px-3 py-1.5 rounded-lg font-bold shadow-sm">Todos Presentes</button>
                     </div>
                 </div>
 
-                <div class="h-[300px] overflow-y-auto custom-scrollbar relative">
-                    <table class="w-full text-left border-separate border-spacing-0">
-                       <thead class="sticky top-0 z-20 shadow-sm">
-                            <tr class="bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 text-[10px] uppercase font-black tracking-tighter">
-                                <th class="p-4 border-b dark:border-slate-700 w-1/2">Estudiante</th>
-                                <th class="p-4 border-b dark:border-slate-700 text-center">Presente</th>
-                                <th class="p-4 border-b dark:border-slate-700 text-center">Falta</th>
-                                <th class="p-4 border-b dark:border-slate-700 text-center">Licencia</th>
-                                <th class="p-4 border-b dark:border-slate-700 text-center text-red-400">Eliminar</th>
+                <div class="h-[300px] overflow-auto custom-scrollbar">
+                    <table class="w-full text-left border-separate border-spacing-0 min-w-[500px]">
+                        <thead>
+                            <tr class="text-gray-400 dark:text-slate-500 text-[10px] uppercase font-black tracking-tighter">
+                                <th class="p-4 border-b dark:border-slate-700 bg-gray-50 dark:bg-slate-800">Estudiante</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center bg-gray-50 dark:bg-slate-800">Presente</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center bg-gray-50 dark:bg-slate-800">Falta</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center bg-gray-50 dark:bg-slate-800">Licencia</th>
+                                <th class="p-4 border-b dark:border-slate-700 text-center bg-gray-50 dark:bg-slate-800"></th>
                             </tr>
                         </thead>
-                        <tbody id="studentsBody" class="divide-y dark:divide-slate-700">
-                            </tbody>
+                        <tbody id="studentsBody" class="divide-y dark:divide-slate-700"></tbody>
                     </table>
                 </div>
 
-                <div class="p-4 bg-gray-50 dark:bg-slate-800/50 border-t dark:border-slate-700 text-right">
-                    <button id="saveAttendanceBtn" class="bg-blue-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:bg-blue-700 transform hover:scale-105 active:scale-95 transition-all">
-                        Guardar Asistencia de Hoy
+                <div class="p-4 bg-gray-50 dark:bg-slate-800/50 border-t dark:border-slate-700">
+                    <button id="saveAttendanceBtn" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg text-sm uppercase tracking-wide">
+                        Guardar Registro de Hoy
                     </button>
                 </div>
             </div>

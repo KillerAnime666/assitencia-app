@@ -16,7 +16,20 @@ const counterEl = document.getElementById("attendanceCounter");
 const loginBtn = document.getElementById("loginBtn");
 const darkIcon = document.getElementById("darkIcon");
 
-// --- 3. ESTABLECER FECHA ACTUAL POR DEFECTO ---
+// --- 3. CONFIGURACIÓN DE NOTIFICACIONES TOAST ---
+const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2500,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer);
+        toast.addEventListener('mouseleave', Swal.resumeTimer);
+    }
+});
+
+// --- 4. ESTABLECER FECHA ACTUAL LOCAL POR DEFECTO ---
 const setTodayDate = () => {
     const hoy = new Date();
     const offset = hoy.getTimezoneOffset();
@@ -25,7 +38,7 @@ const setTodayDate = () => {
 };
 setTodayDate();
 
-// --- 4. SEGURIDAD: CERRAR SESIÓN AL RECARGAR (F5) ---
+// --- 5. SEGURIDAD: CERRAR SESIÓN AL RECARGAR (F5) ---
 window.addEventListener('load', () => {
     if (darkIcon) darkIcon.innerText = htmlElement.classList.contains("dark") ? "☀️" : "🌙";
     
@@ -35,7 +48,7 @@ window.addEventListener('load', () => {
     }
 });
 
-// --- 5. OBSERVADOR DE SESIÓN (MANEJO DE INTERFAZ) ---
+// --- 6. OBSERVADOR DE SESIÓN ---
 onAuthStateChanged(auth, (user) => {
     const loginSection = document.getElementById("loginSection");
     const mainContent = document.getElementById("mainContent");
@@ -50,9 +63,9 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// --- 6. FUNCIONES CORE ---
+// --- 7. FUNCIONES CORE ---
 
-// 1. Al cargar la lista de estudiantes, ahora también verificamos la asistencia
+// Carga estudiantes y activa la verificación de registros existentes
 async function loadStudents() {
     if (!studentsBody) return;
     studentsBody.innerHTML = "<tr><td colspan='5' class='p-10 text-center text-slate-400 italic animate-pulse'>Sincronizando datos...</td></tr>";
@@ -96,54 +109,36 @@ async function loadStudents() {
             studentsBody.appendChild(tr);
         });
 
-        // ¡NUEVO! Después de cargar los alumnos, buscamos si ya hay asistencia para la fecha seleccionada
-        checkExistingAttendance();
+        checkExistingAttendance(); // Buscar si ya hay datos guardados hoy
 
-    } catch (e) { console.error("Error al cargar estudiantes:", e); }
+    } catch (e) { console.error("Error:", e); }
 }
 
-// 2. NUEVA FUNCIÓN: Buscar asistencia guardada para la fecha actual
+// Verifica si ya existe asistencia para la fecha seleccionada
 async function checkExistingAttendance() {
     const selectedDate = dateInput.value;
     if (!selectedDate) return;
 
-    // Resetear todos los radios antes de marcar los nuevos
+    // Limpiar selección previa
     document.querySelectorAll('input[type="radio"]').forEach(radio => radio.checked = false);
 
     try {
         const q = query(collection(db, "attendance"), where("fecha", "==", selectedDate));
         const querySnapshot = await getDocs(q);
 
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            // Buscamos el radio button específico por el name (ID del alumno) y el value (estado)
-            const radioToMark = document.querySelector(`input[name="${data.studentId}"][value="${data.estado}"]`);
-            if (radioToMark) {
-                radioToMark.checked = true;
-            }
-        });
-        updateCounter(); // Actualizar el contador de marcados
-    } catch (e) {
-        console.error("Error al recuperar asistencia:", e);
-    }
+        if (!querySnapshot.empty) {
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const radio = document.querySelector(`input[name="${data.studentId}"][value="${data.estado}"]`);
+                if (radio) radio.checked = true;
+            });
+            Toast.fire({ icon: 'info', title: `Cargando registros del ${selectedDate}` });
+        }
+        updateCounter();
+    } catch (e) { console.error("Error al recuperar datos:", e); }
 }
 
-// 3. EVENTO: Cuando el usuario cambia la fecha en el calendario
-dateInput.onchange = () => {
-    checkExistingAttendance();
-};
-
-// Actualizar el contador de alumnos marcados
-function updateCounter() {
-    if (!counterEl || !studentsBody) return;
-    const total = studentsBody.querySelectorAll("tr").length;
-    const marked = studentsBody.querySelectorAll("input:checked").length;
-    counterEl.innerText = `Marcados: ${marked}/${total}`;
-    counterEl.className = marked === total ? "text-green-600 font-bold text-xs" : "text-amber-600 text-xs";
-}
-
-// Guardar asistencia usando Batch (Atómico)
-// --- Reemplaza tu función saveAttendance por esta versión optimizada ---
+// Guardar/Actualizar asistencia (Evita duplicados con ID compuesto)
 async function saveAttendance() {
     const rows = studentsBody.querySelectorAll("tr");
     const date = dateInput.value;
@@ -156,137 +151,100 @@ async function saveAttendance() {
         const status = row.querySelector("input:checked")?.value;
 
         if (status) {
-            // USAMOS SIEMPRE ESTE ID ÚNICO: Previene duplicados por diseño.
             const docId = `${studentId}_${date}`;
             const ref = doc(db, "attendance", docId);
-            
             batch.set(ref, {
-                studentId: studentId,
-                nombre: nombre,
-                estado: status,
-                fecha: date,
-                lastUpdated: new Date() // Cambiamos timestamp por lastUpdated para mayor claridad
+                studentId, nombre, estado: status, fecha: date, lastUpdated: new Date()
             });
             count++;
         }
     });
 
-    if (count === 0) return Swal.fire("Atención", "No hay cambios para guardar", "info");
+    if (count === 0) return Toast.fire({ icon: 'warning', title: 'Nada para guardar' });
 
     try {
         await batch.commit();
-        Swal.fire({
-            icon: 'success',
-            title: 'Sincronizado',
-            text: `Se actualizaron ${count} registros para el día ${date}`,
-            timer: 1500,
-            showConfirmButton: false
-        });
+        Toast.fire({ icon: 'success', title: 'Sincronizado correctamente' });
         updateCounter();
-    } catch (e) {
-        console.error("Error al guardar:", e);
-        Swal.fire("Error", "No se pudo conectar con la base de datos", "error");
-    }
+    } catch (e) { Toast.fire({ icon: 'error', title: 'Error al guardar' }); }
 }
 
-// Exportar Reporte Excel Detallado (Resumen + Historial)
-async function exportToExcel() {
-    Swal.fire({ title: 'Generando Excel...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-    
-    try {
-        const studentsSnap = await getDocs(collection(db, "students"));
-        const attendanceSnap = await getDocs(collection(db, "attendance"));
-        const students = studentsSnap.docs.map(d => ({id: d.id, name: d.data().name}));
-        const attendance = attendanceSnap.docs.map(d => d.data());
+// --- 8. EVENTOS Y LISTENERS ---
 
-        // Hoja 1: Resumen de totales
-        const summaryData = students.map(s => {
-            const r = attendance.filter(a => a.studentId === s.id);
-            const present = r.filter(x => x.estado === "present").length;
-            const total = r.length;
-            return {
-                "Estudiante": s.name,
-                "✅ Asistencias": present,
-                "❌ Faltas": r.filter(x => x.estado === "absent").length,
-                "🆔 Permisos": r.filter(x => x.estado === "permission").length,
-                "Total Días": total,
-                "% Asistencia": total > 0 ? ((present / total) * 100).toFixed(1) + "%" : "0%"
-            };
-        });
+// Cambio de fecha
+dateInput.onchange = checkExistingAttendance;
 
-        // Hoja 2: Historial diario completo
-        const historyData = attendance.map(a => ({
-            "Fecha": a.fecha,
-            "Estudiante": a.nombre,
-            "Estado": a.estado === 'present' ? 'Asistió' : a.estado === 'absent' ? 'Faltó' : 'Licencia'
-        })).sort((a,b) => b.Fecha.localeCompare(a.Fecha));
+// Guardar
+document.getElementById("saveAttendanceBtn").onclick = saveAttendance;
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summaryData), "Resumen General");
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(historyData), "Historial de Días");
-        XLSX.writeFile(wb, `Reporte_Asistencia_${dateInput.value}.xlsx`);
-        Swal.close();
-    } catch (e) {
-        Swal.fire("Error", "Hubo un problema al generar el archivo", "error");
-    }
-}
+// Modo Oscuro
+document.getElementById("darkModeToggle").onclick = () => {
+    const isDark = htmlElement.classList.toggle("dark");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+    if (darkIcon) darkIcon.innerText = isDark ? "☀️" : "🌙";
+};
 
-// Borrar estudiante
-async function confirmDelete(id, name) {
-    const r = await Swal.fire({
-        title: `¿Borrar a ${name}?`,
-        text: "Se perderán sus registros de asistencia.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        confirmButtonText: 'Sí, eliminar'
-    });
-    if (r.isConfirmed) { 
-        await deleteDoc(doc(db, "students", id)); 
-        loadStudents(); 
-    }
-}
-
-// --- 7. LISTENERS DE EVENTOS ---
-
-// Delegación de clic para Login y Modo Oscuro
-document.addEventListener('click', async (e) => {
-    // Botón Login
-    if (e.target.id === "loginBtn") {
+// Login
+if (loginBtn) {
+    loginBtn.onclick = async () => {
         const email = document.getElementById("email").value.trim();
         const pass = document.getElementById("password").value.trim();
-        if (!email || !pass) return Swal.fire("Campos vacíos", "Completa los datos", "warning");
+        if (!email || !pass) return Toast.fire({ icon: 'warning', title: 'Completa los campos' });
         try {
-            e.target.disabled = true; e.target.innerText = "Verificando...";
+            loginBtn.disabled = true; loginBtn.innerText = "Entrando...";
             await signInWithEmailAndPassword(auth, email, pass);
         } catch (error) {
-            Swal.fire("Error", "Usuario o clave incorrectos", "error");
-            e.target.disabled = false; e.target.innerText = "Entrar al Sistema";
+            Swal.fire("Error", "Credenciales incorrectas", "error");
+            loginBtn.disabled = false; loginBtn.innerText = "Entrar";
         }
-    }
+    };
+}
 
-    // Botón Modo Oscuro
-    if (e.target.closest("#darkModeToggle")) {
-        const isDark = htmlElement.classList.toggle("dark");
-        localStorage.setItem("theme", isDark ? "dark" : "light");
-        if (darkIcon) darkIcon.innerText = isDark ? "☀️" : "🌙";
-    }
-});
-
-// Botón añadir estudiante (con validación de duplicados)
+// Añadir Estudiante
 document.getElementById("addStudentBtn").onclick = async () => {
     const name = document.getElementById("newStudentName").value.trim();
     if (!name) return;
-    
     const check = await getDocs(query(collection(db, "students"), where("name", "==", name)));
-    if (!check.empty) return Swal.fire("Atención", "Este nombre ya está en la lista", "warning");
+    if (!check.empty) return Toast.fire({ icon: 'warning', title: 'Ya existe en la lista' });
 
     await addDoc(collection(db, "students"), { name });
     document.getElementById("newStudentName").value = "";
+    Toast.fire({ icon: 'success', title: 'Estudiante añadido' });
     loadStudents();
 };
 
-// Buscador dinámico
+// Exportar a Excel (Con Toast)
+document.getElementById("exportExcelBtn").onclick = async () => {
+    Swal.fire({ title: 'Generando Reporte...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const sSnap = await getDocs(collection(db, "students"));
+        const aSnap = await getDocs(collection(db, "attendance"));
+        const students = sSnap.docs.map(d => ({id: d.id, name: d.data().name}));
+        const attendance = aSnap.docs.map(d => d.data());
+
+        const summary = students.map(s => {
+            const r = attendance.filter(a => a.studentId === s.id);
+            return { "Estudiante": s.name, "Asistencias": r.filter(x => x.estado === "present").length, "Faltas": r.filter(x => x.estado === "absent").length, "Total": r.length };
+        });
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "Resumen");
+        XLSX.writeFile(wb, `Reporte_Asistencia.xlsx`);
+        Swal.close();
+        Toast.fire({ icon: 'success', title: 'Reporte descargado' });
+    } catch (e) { Swal.fire("Error", "No se pudo generar el archivo", "error"); }
+};
+
+// Logout
+document.getElementById("logoutBtn").onclick = () => signOut(auth);
+
+// Marcar todos
+document.getElementById("markAllPresent").onclick = () => {
+    document.querySelectorAll('input[value="present"]').forEach(i => i.checked = true);
+    updateCounter();
+};
+
+// Buscador
 searchInput.oninput = (e) => {
     const val = e.target.value.toLowerCase();
     studentsBody.querySelectorAll("tr").forEach(tr => {
@@ -294,17 +252,21 @@ searchInput.oninput = (e) => {
     });
 };
 
-// Eventos de botones inferiores
-document.getElementById("saveAttendanceBtn").onclick = saveAttendance;
-document.getElementById("exportExcelBtn").onclick = exportToExcel;
-document.getElementById("logoutBtn").onclick = () => signOut(auth);
+// Contador dinámico
+function updateCounter() {
+    if (!counterEl) return;
+    const marked = studentsBody.querySelectorAll("input:checked").length;
+    const total = studentsBody.querySelectorAll("tr").length;
+    counterEl.innerText = `Marcados: ${marked}/${total}`;
+}
 
-document.getElementById("markAllPresent").onclick = () => {
-    document.querySelectorAll('input[value="present"]').forEach(i => i.checked = true);
-    updateCounter();
+studentsBody.addEventListener('change', updateCounter);
+
+window.confirmDelete = async (id, name) => {
+    const r = await Swal.fire({ title: `¿Borrar a ${name}?`, icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444' });
+    if (r.isConfirmed) { 
+        await deleteDoc(doc(db, "students", id)); 
+        Toast.fire({ icon: 'success', title: 'Estudiante eliminado' });
+        loadStudents(); 
+    }
 };
-
-// Actualizar contador cuando se marque cualquier radio
-studentsBody.addEventListener('change', (e) => {
-    if (e.target.type === "radio") updateCounter();
-});
